@@ -57,8 +57,10 @@ class Orchestrator:
         return response.content
 
     async def play_script(self, text: str):
-        """调用语音模块播报文案"""
-        await self.tts.speak(text)
+        """调用语音模块播报文案（先清洗：去括号舞台指示/emoji 等）。"""
+        from agent.text_clean import clean_for_speech
+        cleaned = clean_for_speech(text)
+        return await self.tts.speak(cleaned)
 
     # ------------------------------------------------------------------
     # 语音问答（新增）
