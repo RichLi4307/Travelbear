@@ -42,6 +42,18 @@ _load_env(os.path.join(project_root, ".env"))
 for _log_name in ("vendor.location.gnss", "vendor.location.ble_scan"):
     logging.getLogger(_log_name).setLevel(logging.ERROR)
 
+
+def _setup_logging(debug: bool = False) -> None:
+    """配置根日志（等级 + 格式）。各模块日志经各自 logger 输出。
+
+    默认 INFO：正常事件（请求/结果/耗时/降级）；--debug 时 DEBUG：附加全文载荷。
+    """
+    logging.basicConfig(
+        level=logging.DEBUG if debug else logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
 from location.location_adapter import LocationAdapter   # 真实定位（同事代码 + 适配层）
 from vision.vision_qwen_vl import QwenVLVision          # 真实识图（同事交付，Qwen-VL-Max）
 from tts.tts_interface import get_tts                   # 真实 TTS（同事代码）
@@ -75,9 +87,11 @@ def _build_agent(use_mock_asr: bool):
 
 async def main():
     parser = argparse.ArgumentParser(description="熊导游 Agent")
-    parser.add_argument("--demo", action="store_true", help="演示模式：自动跑一次讲解+问答")
+    parser.add_argument("--demo", action="store_true", help="演示模式：自动跑一次讲解（连续问答已冻结，ASR 用 Mock）")
+    parser.add_argument("--debug", action="store_true", help="日志等级降为 DEBUG（输出请求/播报全文等载荷）")
     args = parser.parse_args()
 
+    _setup_logging(args.debug)
     agent = _build_agent(use_mock_asr=args.demo)
     print("=== 熊导游 Agent 启动完成 ===")
 

@@ -24,6 +24,8 @@ READY_TONES = ((880.0, 0.15), (1320.0, 0.22))
 LOCK_TONES = ((520.0, 0.25),)
 # 播报被打断的提示音：两声下行音（与「就绪上行」区分）
 INTERRUPT_TONES = ((880.0, 0.1), (587.0, 0.16))
+# 功能键「受理」提示音：短促单声，表示按下了且开始干活（与音量滴声区分）
+RECEIVED_TONES = ((660.0, 0.12),)
 # 自检项涉及的三个环境变量
 _ENV_KEYS = ("AMAP_WEB_KEY", "DASHSCOPE_API_KEY", "MIMO_API_KEY")
 

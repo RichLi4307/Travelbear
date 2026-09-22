@@ -151,6 +151,9 @@ class TTSAdapter(TTSInterface):
         if self._closed:
             return _status(False, False, "TTS 已关闭（close 之后不再接受播报）")
 
+        log.info("开始播报：%d 字", len(text))
+        log.debug("播报全文：%s", text)
+
         try:
             return await self._speak_impl(text, interrupt)
         except asyncio.CancelledError:
@@ -224,17 +227,20 @@ class TTSAdapter(TTSInterface):
         m = metrics or {}
 
         if m.get("stopped"):
+            log.info("播报被外部打断（未播完）")
             return _status(False, playing, "播报被打断，未播完")
 
         sentences = m.get("sentences") or 0
         failed = m.get("failed") or 0
         if sentences and failed >= sentences:
+            log.error("播报失败：%d 句全部没出声（检查网络或 API 凭据）", sentences)
             return _status(False, playing,
                            "合成失败：%d 句全部没出声（检查网络或 API 凭据）" % failed)
         if failed:
             # 部分句子没出声、其余正常：算成功，降级细节只在日志里体现，
             # 避免 error_msg 在 success=True 时非空、把调用方绕晕。
             log.warning("本次播报有 %d/%d 句合成失败", failed, sentences)
+        log.info("播报完成：%d 句，失败 %d", sentences, failed)
         return _status(True, playing, "")
 
     def _stop_now(self) -> None:
@@ -255,6 +261,7 @@ class TTSAdapter(TTSInterface):
 
     async def stop(self) -> None:
         """外部主动停止（契约里没有，但 Agent 若需要可以调）。"""
+        log.info("收到外部停止请求")
         await asyncio.to_thread(self._stop_now)
 
     async def warmup(self) -> None:

@@ -35,6 +35,8 @@ journalctl -u bear-guide -f         # systemd 模式看日志
 - 两个进程不能同时占 GPIO（kernel 级引脚占用，后者报 PinBusy）
 - 无头系统跑 opencv 必须用 headless 版；Pi5 的 lgpio 用系统包复制进 venv
 - stdout 重定向要 `python -u`，否则 print 全卡在缓冲区
+- **TTS 引擎启动时用 `TTS_VOLUME`（默认 100）重置系统音量**——音量标定改 `bear-guide/.env` 里的 TTS_VOLUME，别只调 amixer
+- **测试时音量要低**（当前测试基准 10%）：任何会出声的验证（demo/提示音/hw_check）前把 `amixer -c 0 sset PCM 10%`，正式使用标定 15/100
 
 ## Git 提交频率约定（必须遵守）
 

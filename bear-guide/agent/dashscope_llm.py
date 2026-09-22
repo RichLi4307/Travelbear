@@ -1,10 +1,13 @@
 import asyncio
 import json
+import logging
 import os
-import sys
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+
+log = logging.getLogger("agent.llm")
 
 
 @dataclass
@@ -63,23 +66,31 @@ class DashScopeLLM:
             method="POST",
         )
 
+        start = time.monotonic()
         with urllib.request.urlopen(req, timeout=20) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-        return data["choices"][0]["message"]["content"].strip()
+        content = data["choices"][0]["message"]["content"].strip()
+        log.info("LLM 请求完成：模型=%s 耗时=%.1fs 输出=%d 字",
+                 self.model, time.monotonic() - start, len(content))
+        log.debug("LLM 原始响应：%s", content)
+        return content
 
     # ------------------------------------------------------------------
     # 单轮：讲解文案生成
     # ------------------------------------------------------------------
     async def chat(self, prompt: str) -> LLMResponse:
         if not self.api_key:
+            log.warning("未配置 DASHSCOPE_API_KEY，讲解使用占位文案")
             return LLMResponse(content="（未配置 DASHSCOPE_API_KEY，使用占位文案）欢迎来到这座校园，眼前是标志性建筑，承载了历届学子的青春记忆。")
         try:
+            log.info("开始生成讲解文案（提示词 %d 字）", len(prompt))
             messages = [{"role": "user", "content": prompt}]
             content = await asyncio.to_thread(self._call_sync, messages)
+            log.info("讲解文案生成成功：%s", content)
             return LLMResponse(content=content)
         except Exception as exc:
             # 错误记日志，但给游客的话要干净，不暴露技术细节
-            print(f"[LLM降级] 讲解生成失败，使用本地话术：{exc}", file=sys.stderr)
+            log.warning("讲解生成失败，使用本地话术：%s", exc)
             return LLMResponse(content="欢迎来到我们的校园，让我为您简单介绍一下眼前的景致。")
 
     # ------------------------------------------------------------------
@@ -98,15 +109,17 @@ class DashScopeLLM:
             messages.append({"role": "system", "content": self.GUIDE_SYSTEM})
         messages.extend(self._history)
         messages.append({"role": "user", "content": user_msg})
+        log.info("游客提问：%s（历史 %d 轮）", user_msg, len(self._history) // 2)
 
         try:
             content = await asyncio.to_thread(self._call_sync, messages)
         except Exception as exc:
-            print(f"[LLM降级] 问答生成失败：{exc}", file=sys.stderr)
+            log.warning("问答生成失败：%s", exc)
             content = "抱歉，我刚刚走神了，能再说一遍吗？"
 
         # 记住这一轮问答，供下一轮上下文使用
         self._history.append({"role": "user", "content": user_msg})
         self._history.append({"role": "assistant", "content": content})
+        log.info("问答回复生成成功：%s", content)
 
         return LLMResponse(content=content)
