@@ -1,6 +1,11 @@
 import asyncio
 from common.types import DeviceState
 from agent.orchestrator import Orchestrator
+from agent.service import play_tones, INTERRUPT_TONES
+
+# 连续语音问答开关：麦克风 + OSS 未到位，冻结问答模块（一按一讲模式）。
+# 解冻方法：硬件到位后改 True，并把 main.py 的 ASR 接线恢复为 DashScopeASR。
+ENABLE_CONVERSATION = False
 
 class AgentStateMachine:
     """
@@ -21,10 +26,13 @@ class AgentStateMachine:
         await self._run_guide_once()
 
     async def run_guide(self, max_rounds: int = 3):
-        """完整导游流程：讲解一次 + 多轮语音问答。
+        """完整导游流程：讲解一次 +（可选）多轮语音问答。
 
         讲解结束后自动进入「聆听」状态，游客提问就回答，
         连续静默（没听到提问）则结束对话、回到待机。
+
+        当前 ENABLE_CONVERSATION=False（问答模块冻结）：讲解完即回待机，
+        即「一按一讲」模式，不涉及语音识别。
         """
         # 1. 清空上一轮对话历史，避免串上下文
         llm = getattr(self.orchestrator, "llm", None)
@@ -39,7 +47,11 @@ class AgentStateMachine:
             self._interrupt_flag = False
             return
 
-        # 4. 进入问答循环
+        # 4. 连续问答模块已冻结（等麦克风硬件），解冻见模块常量说明
+        if not ENABLE_CONVERSATION:
+            return
+
+        # 5. 进入问答循环
         await self._conversation_loop(max_rounds)
 
     async def _run_guide_once(self):
@@ -74,7 +86,10 @@ class AgentStateMachine:
 
             # ========== 流程结束，回到待机 ==========
             self.state = DeviceState.IDLE
-            print("[状态] idle：讲解完成，返回待机")
+            if self._interrupt_flag:
+                print("[状态] idle：播报被打断，返回待机")
+            else:
+                print("[状态] idle：讲解完成，返回待机")
 
         except Exception as e:
             # 异常处理：任何错误都不卡死，自动回到待机
@@ -112,6 +127,12 @@ class AgentStateMachine:
 
                 await self.orchestrator.play_script(reply)
 
+                # 播报回答中被按键打断：结束整个对话，回待机
+                if self._interrupt_flag:
+                    self._interrupt_flag = False
+                    print("[打断] 回答播报被按键打断，结束对话")
+                    break
+
         except Exception as e:
             print(f"[错误] 问答流程异常：{str(e)}")
         finally:
@@ -136,10 +157,16 @@ class AgentStateMachine:
         asyncio.create_task(self.run_guide())
 
     async def _interrupt_speaking(self):
-        """打断当前播报（播报中再按按键）。"""
+        """打断当前播报（播报中再按按键）：停 TTS、放提示音。
+
+        打断 = 停止本次播放回待机（非暂停续播，也非重启进程），
+        日志记一条明确的「打断」，后续按 IDLE 路径可立即开新讲解。
+        """
         tts = getattr(self.orchestrator, "tts", None)
         if tts and hasattr(tts, "stop"):
             try:
                 await tts.stop()
             except Exception:
                 pass
+        print("[打断] 已停止当前播报（按键打断）")
+        play_tones(INTERRUPT_TONES)

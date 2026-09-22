@@ -26,25 +26,31 @@
 ## 状态流转
 
 ```
-IDLE → ACQUIRING → GENERATING → SPEAKING（讲解）
+IDLE → ACQUIRING → GENERATING → SPEAKING（讲解）→ IDLE   ← 当前模式：一按一讲
                                   ↓
-                          LISTENING（听游客）
+                          LISTENING（听游客）             ← 已冻结（ENABLE_CONVERSATION=False）
                             ├─ 有提问 → GENERATING → SPEAKING → 回到 LISTENING
                             └─ 静默   → IDLE
 ```
 
-任何环节异常都会自动恢复到 `IDLE`，不卡死设备。播报中再按按键 = 打断。
+任何环节异常都会自动恢复到 `IDLE`，不卡死设备。按键路由（在事件循环线程内判定，无竞争）：
+
+- **待机时短按** = 讲一次（采集→生成→播报→回 IDLE，一按一讲）
+- **播报中短按** = 打断：停 TTS → 放下行提示音 → 回 `IDLE`
+- 采集/生成中短按 = 忽略；**连续问答已冻结**，当前不存在「聆听」状态
+- 长按任何时候都是解锁/上锁
 
 ## 运行方式
 
 在项目根目录（`bear-guide`）下：
 
 ```bash
-# 演示模式：自动跑一次「讲解 + 问答」，开发机调试用（ASR 用 Mock，不接麦克风）
-python agent/main.py --demo
+# 演示模式：自动跑一次讲解（连续问答已冻结，ASR 用 Mock）
+python -u agent/main.py --demo
 
 # 真实模式：监听按键，游客按下触发讲解（树莓派部署用）
-python agent/main.py
+# -u 关输出缓冲：重定向到日志文件时 print 也能实时落盘
+python -u agent/main.py
 ```
 
 ## 测试命令
@@ -84,21 +90,47 @@ DASHSCOPE_API_KEY=阿里云Key（识图+LLM+ASR 共用）
 MIMO_API_KEY=小米Key
 ```
 
-### 3. 按键接线
+### 3. 按键接线（3 颗按钮，均接 3.3V 高电平有效）
 
-默认 GPIO 引脚是 **BCM 17**（在 `agent/button.py` 顶部 `DEFAULT_GPIO_PIN` 改）。
-按钮一端接 GPIO17，一端接 GND。按下即触发讲解，播报中再按 = 打断。
+引脚定义在 `agent/button.py` 顶部：
+
+| 按钮 | 引脚（BCM） | 行为 |
+| --- | --- | --- |
+| 功能键 | GPIO17 | 短按=触发讲解（播报中再按=打断）；**长按 2 秒=解锁/上锁导览服务** |
+| 音量＋ | GPIO18 | 短按音量+5%（滴声反馈，防抖50ms，无长按事件） |
+| 音量− | GPIO27 | 短按音量−5%（滴声反馈，防抖50ms，无长按事件） |
+
+按钮一端接 GPIO，一端接 3.3V（内部下拉）。上电默认**上锁**：
+短按无效，长按功能键 2 秒解锁 → 自检 → 「就绪提示音」后可用。
+若按钮是接 GND 的接法，把 `button.py` 里 `PULL_UP` 改成 `True`。
 
 ### 4. 启动
 
 ```bash
-cd /home/pi/robot/bear-guide
-python agent/main.py
+cd /home/shu/ICAN/bear-guide
+python -u agent/main.py
 ```
 
-看到 `[按键] 已监听 GPIO17（防抖 300ms）` 即表示就绪，按按钮开始讲解。
+看到 `[按键] 功能键=GPIO17（…）` 即表示按键监听就绪。上电默认上锁，长按功能键 2 秒解锁（自检 + 提示音）后短按即可讲解。
 
-### 5. 已知待办（等硬件）
+### 5. 开机自启（systemd，可选）
 
+```bash
+sudo cp deploy/bear-guide.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now bear-guide
+journalctl -u bear-guide -f    # 看日志
+```
+
+### 6. 已知待办（等硬件）
+
+- **连续语音问答已冻结**（2026-09-22）：麦克风 + OSS 未到位，`state_machine.py` 里
+  `ENABLE_CONVERSATION=False`，设备为「一按一讲」模式。
+  解冻步骤：硬件到位后改常量为 `True`，并把 `main.py` 的 ASR 接线恢复为 `DashScopeASR()`。
+- **ASR 无「说完」检测**：`asr/dashscope_asr.py` 是**固定 5 秒录音窗口**（`sd.rec` + `sd.wait`），
+  没有 VAD 端点判定，不知道用户何时说完；说话超过 5 秒会被切断；
+  每轮聆听固定耗时约 7~10 秒（5s 录音 + 上传 + 轮询识别）。
+  改进路径：① 能量端点检测（连续静音 ~0.8s 判说完，改动小，numpy 已就绪）；
+  ② 升级 Paraformer 实时识别（websocket，服务端自带 VAD/端点）。
 - **ASR 音频上传**：`asr/dashscope_asr.py` 的 `_upload_audio()` 需要接 OSS（麦克风+OSS 到位后补），其余录音/识别代码已就绪。
 - **TTS 音频设备**：上机跑 `aplay -l`，若出声不对在 `.env` 配 `TTS_ALSA_DEVICE=plughw:CARD=名字,DEV=0`。

@@ -3,15 +3,16 @@
 
 运行方式：
     python agent/main.py            # 真实模式：GPIO 按键监听 + 真实 ASR（树莓派部署用）
-    python agent/main.py --demo     # 演示模式：自动跑一次讲解+问答（开发机调试用，ASR 用 Mock）
+    python agent/main.py --demo     # 演示模式：自动跑一次讲解（连续问答已冻结，ASR 用 Mock）
 
 真实模式 vs 演示模式：
-    真实模式   ASR 用 DashScopeASR（麦克风+OSS 到位后出声），按键用 GPIO（开发机回车模拟）
-    演示模式   ASR 用 MockASR（不接麦克风），自动跑一次完整流程，方便看效果
+    真实模式   问答模块冻结（一按一讲），按键用 GPIO（开发机回车模拟）
+    演示模式   ASR 用 MockASR（不接麦克风），自动跑一次讲解，方便看效果
 """
 
 import argparse
 import asyncio
+import logging
 import os
 import sys
 
@@ -37,13 +38,19 @@ def _load_env(path):
 
 _load_env(os.path.join(project_root, ".env"))
 
+# 压制定位同事模块「无硬件重连」的告警刷屏（ERROR 及以上的真实故障仍保留）
+for _log_name in ("vendor.location.gnss", "vendor.location.ble_scan"):
+    logging.getLogger(_log_name).setLevel(logging.ERROR)
+
 from location.location_adapter import LocationAdapter   # 真实定位（同事代码 + 适配层）
 from vision.vision_qwen_vl import QwenVLVision          # 真实识图（同事交付，Qwen-VL-Max）
 from tts.tts_interface import get_tts                   # 真实 TTS（同事代码）
 from agent.orchestrator import Orchestrator
-from agent.state_machine import AgentStateMachine
+from agent.state_machine import AgentStateMachine, ENABLE_CONVERSATION
 from agent.dashscope_llm import DashScopeLLM            # 真实 LLM（DashScope）
 from agent.button import ButtonMonitor                  # 按键监听（GPIO / 键盘）
+from agent.service import GuideService                  # 导览服务锁（长按解锁/上锁）
+from agent.volume import volume_up, volume_down         # 音量加/减（amixer）
 from asr.dashscope_asr import DashScopeASR              # 真实 ASR（Paraformer，待麦克风）
 from asr.mock_asr import MockASR                        # 演示用 ASR（不接麦克风）
 
@@ -54,7 +61,13 @@ def _build_agent(use_mock_asr: bool):
     vision = QwenVLVision(image_source="camera")          # 真实识图（开发机无摄像头可改本地图）
     tts = get_tts()                                       # 真实 TTS（必须在事件循环内调用）
     llm = DashScopeLLM()                                  # 真实 LLM
-    asr = MockASR() if use_mock_asr else DashScopeASR()   # ASR：演示用 Mock / 真实用 DashScope
+    # ASR：演示用 Mock；问答模块冻结时不接 ASR（None 即静默）；解冻后恢复 DashScopeASR
+    if use_mock_asr:
+        asr = MockASR()
+    elif ENABLE_CONVERSATION:
+        asr = DashScopeASR()
+    else:
+        asr = None
 
     orchestrator = Orchestrator(location, vision, tts, llm_client=llm, asr=asr)
     return AgentStateMachine(orchestrator)
@@ -74,8 +87,14 @@ async def main():
         print("=== 演示结束 ===")
         return
 
-    # 真实模式：监听按键，等游客按下触发讲解
-    monitor = ButtonMonitor(callback=agent.trigger)
+    # 真实模式：监听按键。服务默认上锁，长按功能键 2 秒解锁后才能短按讲解
+    service = GuideService()
+    monitor = ButtonMonitor(
+        on_short_press=lambda: service.on_short_press(agent.trigger),
+        on_long_press=service.on_long_press,
+        on_vol_up=volume_up,
+        on_vol_down=volume_down,
+    )
     monitor.start()
     # 保持事件循环常驻，等待按键触发
     await asyncio.Event().wait()

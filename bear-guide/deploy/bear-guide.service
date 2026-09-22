@@ -1,0 +1,32 @@
+# 熊导游 Agent —— systemd 服务
+# 用法：
+#   sudo cp deploy/bear-guide.service /etc/systemd/system/bear-guide.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now bear-guide
+#
+# 常用管理：
+#   systemctl status bear-guide          # 看状态
+#   journalctl -u bear-guide -f          # 跟随日志
+#   sudo systemctl stop bear-guide       # 停止
+#   sudo systemctl disable bear-guide    # 取消开机自启
+#
+# 说明：
+# - 密钥不写在本文件：main.py 启动时自己读项目根目录的 .env
+# - 上电默认「上锁」，长按功能键(GPIO17) 2 秒解锁后使用；音量键随时可用
+# - 崩溃后 5 秒自动拉起（on-failure）；systemctl stop 不会被拉起
+
+[Unit]
+Description=Bear Guide Agent (熊导游)
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shu
+WorkingDirectory=/home/shu/ICAN/bear-guide
+ExecStart=/home/shu/ICAN/bear-guide/.venv/bin/python -u agent/main.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
