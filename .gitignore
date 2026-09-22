@@ -25,4 +25,4 @@ env/
 .tts_cache/
 captures/
 *.log
-vendor/data/poi_cache.sqlite
+**/poi_cache.sqlite
