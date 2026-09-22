@@ -13,6 +13,7 @@ $V -u agent/main.py --demo           # 演示模式（自动跑一次讲解）
 $V -u agent/hw_check.py             # 按键硬件检测（按功能键叫一声，音量键带滴声）
 amixer -c 0 sget PCM                # 查音量（当前标定 75/100）
 sudo -n usb-reset-cam               # 摄像头固件卡死（抓帧挂起）时免密复位，不用重启
+python3 -m http.server 8901 --directory bear-guide/captures   # 浏览器看摄像头实拍: http://<树莓派IP>:8901/
 journalctl -u bear-guide -f         # systemd 模式看日志
 ```
 

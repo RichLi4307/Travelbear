@@ -4,6 +4,7 @@ vision/vision_qwen_vl.py —— 云端 Qwen-VL-Max 识图实现
 """
 import logging
 import os
+import subprocess
 import time
 import base64
 import asyncio
@@ -55,8 +56,11 @@ class QwenVLVision(VisionInterface):
     def _grab_frame_sync(self) -> str:
         """同步采集一帧（在子线程中调用）。
 
-        摄像头 USB 偶发掉线重枚举（和 WiFi 共用 USB2 集线器），打开/读帧
-        失败时重试 3 次、间隔 0.6s；持续失败才抛错（走业务降级链路）。
+        两个实测要点：
+        - 该摄像头每次开流后自动曝光要 ~10 帧才收敛，首帧必过曝（均值 200+），
+          所以丢弃前 9 帧取第 10 帧
+        - 连续自动对焦默认是关的，每次开流恢复（设备重枚举后设置会丢）
+        - 摄像头 USB 偶发掉线重枚举（和 WiFi 共用 USB2 集线器），失败重试 3 次
         """
         if self.image_source != "camera":
             frame = cv2.imread(self.image_source)
@@ -66,15 +70,32 @@ class QwenVLVision(VisionInterface):
 
         last_err: Optional[Exception] = None
         for attempt in range(3):
+            self._enable_autofocus()
             cap = cv2.VideoCapture(0)
-            ok, frame = cap.read()
+            frame, ok = None, False
+            for _ in range(10):          # 前 9 帧丢弃，给自动曝光收敛时间
+                ok, f = cap.read()
+                if not ok:
+                    break
+                frame = f
             cap.release()
-            if ok:
+            if ok and frame is not None:
                 return self._save_frame(frame)
             last_err = RuntimeError("摄像头打开或读帧失败")
             log.warning("取景第 %d/3 次失败，0.6s 后重试", attempt + 1)
             time.sleep(0.6)
         raise last_err
+
+    @staticmethod
+    def _enable_autofocus() -> None:
+        """恢复连续自动对焦（该摄像头默认关闭，且无自拍距离变化时影响小）。"""
+        try:
+            subprocess.run(
+                ["v4l2-ctl", "-d", "/dev/video0",
+                 "--set-ctrl=focus_automatic_continuous=1"],
+                capture_output=True, timeout=5)
+        except Exception:                              # noqa: BLE001
+            pass
 
     @staticmethod
     def _save_frame(frame) -> str:
