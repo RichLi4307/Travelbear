@@ -23,7 +23,7 @@
 
 环境变量（全部可选，均有默认值）：
     MIMO_API_KEY        小米 MiMo 的 Key
-    TTS_VOICE           预置音色，默认 REDACTED-ROTATE-ME
+    TTS_VOICE           预置音色，默认 mimo_default
     TTS_STYLE           风格描述（放进 user 消息）
     TTS_TIMEOUT         单次网络读超时，默认 5 秒
     TTS_DEADLINE        单句合成总时限，默认 15 秒
@@ -102,7 +102,7 @@ class _EndOfSentence:
 _EOS = _EndOfSentence()
 
 PRESET_VOICES = [
-    "REDACTED-ROTATE-ME", "冰糖", "茉莉", "苏打", "白桦",
+    "mimo_default", "冰糖", "茉莉", "苏打", "白桦",
     "Mia", "Chloe", "Milo", "Dean",
 ]
 
@@ -147,7 +147,7 @@ def _env_float(name: str, default: float) -> float:
 @dataclass
 class Config:
     api_key: str = field(default_factory=lambda: os.environ.get("MIMO_API_KEY", ""))
-    voice: str = field(default_factory=lambda: os.environ.get("TTS_VOICE", "REDACTED-ROTATE-ME"))
+    voice: str = field(default_factory=lambda: os.environ.get("TTS_VOICE", "mimo_default"))
     style: str = field(default_factory=lambda: os.environ.get("TTS_STYLE", DEFAULT_STYLE))
     style_en: str = field(default_factory=lambda: os.environ.get("TTS_STYLE_EN", DEFAULT_STYLE_EN))
     timeout: int = field(default_factory=lambda: _env_int("TTS_TIMEOUT", 5))
