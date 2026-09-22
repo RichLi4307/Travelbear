@@ -102,7 +102,14 @@ async def main():
         return
 
     # 真实模式：监听按键。服务默认上锁，长按功能键 2 秒解锁后才能短按讲解
-    service = GuideService()
+    loop = asyncio.get_running_loop()
+
+    def _speak(text: str) -> None:
+        """服务锁的语音提示：把 TTS 调度回主事件循环（可在按键回调线程调用）。"""
+        asyncio.run_coroutine_threadsafe(
+            agent.orchestrator.tts.speak(text, interrupt=True), loop)
+
+    service = GuideService(speak_fn=_speak)
     monitor = ButtonMonitor(
         on_short_press=lambda: service.on_short_press(agent.trigger),
         on_long_press=service.on_long_press,

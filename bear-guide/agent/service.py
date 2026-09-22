@@ -57,11 +57,25 @@ def play_tones(tones, amplitude: float = 12000) -> None:
 
 
 class GuideService:
-    """导览服务锁：locked=True 时短按不触发讲解。"""
+    """导览服务锁：locked=True 时短按不触发讲解。
 
-    def __init__(self) -> None:
+    speak_fn: 可选的语音播报回调（主程序把 TTS 调度器注入进来），
+    用于「自检中/自检完成/已上锁」等场景语音；为 None 时只放提示音。
+    """
+
+    def __init__(self, speak_fn=None) -> None:
         self.locked = True
+        self._speak = speak_fn
         print("[服务] 已上锁：长按功能键 2 秒解锁，音量键随时可用")
+
+    def _voice(self, text: str) -> None:
+        """让 TTS 说一句话；失败只记日志（提示音是可靠的兜底）。"""
+        if not self._speak:
+            return
+        try:
+            self._speak(text)
+        except Exception as exc:                           # noqa: BLE001
+            log.warning("提示语音播报调度失败：%s", exc)
 
     # ------------------------------------------------------------------
     # 功能键：短按（由 button 层调度回事件循环后执行）
@@ -81,11 +95,16 @@ class GuideService:
         if self.locked:
             print("[服务] 已上锁，短按不再触发讲解")
             play_tones(LOCK_TONES)
+            self._voice("已上锁")
         else:
+            # 先给即时反馈（提示音 + 语音），再跑自检，避免用户一直按着等
             print("[服务] 解锁，开始自检...")
+            play_tones(RECEIVED_TONES)
+            self._voice("好的，正在自检，请稍候")
             self._self_check()
             print("[服务] 自检完成，可以讲解（再长按 2 秒上锁）")
             play_tones(READY_TONES)
+            self._voice("自检完成，请开始使用")
 
     # ------------------------------------------------------------------
     # 开机自检：本地项目，不联网（联网模块运行时有各自降级）
