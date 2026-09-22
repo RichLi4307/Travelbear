@@ -1,0 +1,7 @@
+# 定位模块依赖
+# 跑测试最低只需 pytest；test_gnss.py 还需要 pynmea2。
+pyserial>=3.5      # 串口读 NMEA
+pynmea2>=1.19      # 解析 NMEA 0183
+bleak>=0.22        # BLE 扫描（iBeacon）
+PyYAML>=6.0        # beacons.yaml
+pytest>=8.0        # 测试

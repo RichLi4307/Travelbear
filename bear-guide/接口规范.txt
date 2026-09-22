@@ -1,0 +1,46 @@
+============================================================
+熊导游项目 模块接口契约 v1.0
+============================================================
+
+本文件用于团队分工对接，规定各模块与 Agent 核心之间的调用契约。
+所有模块负责人必须先阅读本文件，再开始编码。
+
+------------------------------------------------------------
+【定位模块 location】
+------------------------------------------------------------
+文件位置：location/location_interface.py
+抽象基类：LocationInterface
+必须实现的异步函数：async get_position(self, timeout: float = 5.0) -> PositionInfo
+返回值类型：common.types.PositionInfo
+返回字段：success（定位是否成功）/ latitude（纬度）/ longitude（经度）/
+          poi_name（POI名称）/ address（详细地址）/ is_indoor（是否室内）/
+          error_msg（失败原因，成功时为空）
+
+------------------------------------------------------------
+【识图模块 vision】
+------------------------------------------------------------
+文件位置：vision/vision_interface.py
+抽象基类：VisionInterface
+必须实现的异步函数：async get_scene(self, timeout: float = 8.0) -> SceneInfo
+返回值类型：common.types.SceneInfo
+返回字段：success（识别是否成功）/ scene_description（场景文字描述）/
+          confidence（置信度 0~1）/ error_msg（错误信息）
+
+------------------------------------------------------------
+【语音模块 tts】
+------------------------------------------------------------
+文件位置：tts/tts_interface.py
+抽象基类：TTSInterface
+必须实现的异步函数：async speak(self, text: str, interrupt: bool = False) -> PlayStatus
+返回值类型：common.types.PlayStatus
+返回字段：success（播放是否成功）/ is_playing（是否正在播放）/
+          error_msg（错误信息）
+
+============================================================
+【通用规则】（所有模块必须遵守）
+============================================================
+1. 所有模块必须用 Python + async 异步实现。
+2. 不许修改 common/types.py 中的数据结构。
+3. 不许修改接口函数名、参数列表、返回值格式。
+4. 内部异常不许抛出，必须封装进返回值的 error_msg 字段。
+5. 接口有问题找 Agent 负责人协商。

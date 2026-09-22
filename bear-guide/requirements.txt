@@ -1,0 +1,23 @@
+# ==================== 熊导游依赖清单 ====================
+# 分模块标注，真实模块已取消注释；仅树莓派专用的保持注释并说明。
+
+# ---------- 定位模块（location） ----------
+# GPS 串口解析 + 蓝牙信标扫描 + 高德反解 + 配置文件
+pyserial>=3.5
+pynmea2>=1.15
+bleak>=0.21
+requests>=2.31
+PyYAML>=6.0
+
+# ---------- 识图模块（vision） ----------
+opencv-python>=4.8.0
+openai>=1.0.0
+# picamera2        # 仅树莓派 CSI 摄像头需要；USB 摄像头不用装
+
+# ---------- 语音模块（tts + asr） ----------
+# TTS（同事实现）：零第三方依赖，出声走系统 aplay，不要 pip install
+sounddevice>=0.4.6   # ASR 录音用；树莓派上先 `sudo apt install libportaudio2`
+
+# ---------- Agent 模块 ----------
+# gpiozero 仅树莓派 GPIO 按键需要；开发机键盘模拟不需要
+# gpiozero>=2.0

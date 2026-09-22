@@ -1,0 +1,25 @@
+# TTS 模块依赖
+#
+# ★★ 结论：本模块零第三方依赖。树莓派上什么都不用 pip install。★★
+#
+#   云端合成 / 流式播放 / 打断 / 降级 / 缓存，全部只用 Python 标准库。
+#   树莓派出声走 aplay    —— 由系统包 alsa-utils 提供，apt 装，不是 pip 包；
+#   Windows 出声走 winsound —— 系统自带。
+#
+#   所以下面每一行都是**可选**的。尤其是 PyAudio：它需要现场编译 PortAudio，
+#   在树莓派上装一次要几分钟到十几分钟，而且我们根本不用它。
+#   **不要在 Pi 上执行 pip install -r requirements.txt** —— 没有收益，只有风险。
+#
+# --- 只有这两种情况才需要手动装（都不是必需）---
+#
+# 想在开发机上用 sounddevice 后端（pip 轮子自带 portaudio，不用装系统库）：
+# sounddevice>=0.4.6
+#
+# 想用 PyAudio 后端（Windows 需先装 PortAudio 库；Pi 需先 apt install portaudio19-dev）：
+# PyAudio>=0.2.13
+#
+# --- 纯可选，不装也能跑 ---
+# numpy>=1.24            # 仅用于增益计算；无 numpy 时自动回退到内置 array 实现
+#
+# 注：**不需要 python-dotenv** —— .env 由各入口脚本自带的极简解析读取
+#     （见 selftest.py / precache_cli.py / test_tts.py），没有第三方依赖。

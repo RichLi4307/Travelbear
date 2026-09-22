@@ -1,0 +1,42 @@
+# TTS 模块 —— systemd 服务示例
+# 用法：sudo cp tts.service /etc/systemd/system/tts.service
+#       sudo systemctl daemon-reload && sudo systemctl enable --now tts
+#
+# 注意：这个文件归整合者（李鑫）管，zcm 只提供模板。
+# 实际部署时要和 Agent 主程序合并成一个服务，这里只演示 TTS 相关的环境变量与权限。
+
+[Unit]
+Description=TTS module warmup and health check
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=pi
+Group=audio
+WorkingDirectory=/home/pi/robot/tts
+
+# --- TTS 模块需要的环境变量 ---
+# 密钥：不要写在这里！改用 EnvironmentFile 指向 .env。
+# ★ 路径必须是 tts/.env（与 tts.py 同级）：代码按「脚本所在目录」找 .env，
+#   放到上一级 /home/pi/robot/.env 会读不到。
+EnvironmentFile=/home/pi/robot/tts/.env
+
+# 音频设备 / 缓存目录 / 音色等**统一在 .env 里配**，这里不再重复写。
+# （systemd 的 Environment= 优先级高于 EnvironmentFile=，
+#   在这里再写一份会把 .env 的值盖掉，于是「明明改了 .env 却没生效」。）
+#
+# 特别提醒 TTS_ALSA_DEVICE：必须 plughw（自动重采样），不能用 hw
+# （hw 只接受设备原生采样率，云端音频 24000Hz 会直接报错）；
+# 而且要写 CARD **名字**、不要写编号 —— USB 插拔 / 重启会改变编号：
+#     TTS_ALSA_DEVICE=plughw:CARD=Device,DEV=0
+Environment=TTS_VOLUME=100
+Environment=TTS_TIMEOUT=5
+Environment=TTS_DEADLINE=15
+
+# 开机预热：校验 Key 与音频设备，让配置问题在开机时就暴露（见 warmup_cli.py）
+ExecStart=/usr/bin/python3 /home/pi/robot/tts/warmup_cli.py
+
+[Install]
+WantedBy=multi-user.target

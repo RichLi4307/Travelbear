@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.venv-*/
+venv/
+
+# 测试与临时
+.pytest_cache/
+.verify-libs/
+_verify_tmp.py
+_verify.py
+_test_tmp/
+pt_tmp/
+.pytmp/
+.pt/
+*.bak
+
+# 打包产物
+*.zip
+_verify_pack/
+
+# 现场数据（按需决定要不要提交：NMEA 录制建议提交，它们是好素材）
+data/*.sqlite
+data/*.db
+
+# ⚠️ 密钥：绝对不要提交。放 .env 里（见 .env.example），别写进代码
+.env
+.env.*
+!.env.example
+*.key
+secrets/
+
+# 私人/本地文件：不属交付物，留在本机
+private/
