@@ -226,6 +226,13 @@ class TTSAdapter(TTSInterface):
         playing = self._engine.is_speaking()
         m = metrics or {}
 
+        if m.get("consume_error"):
+            # 播放消费线程崩过：音频很可能几乎没播，绝不能算成功
+            log.error("播放消费线程曾异常，本次播报实际未完整出声：%s",
+                      m["consume_error"])
+            return _status(False, playing,
+                           "播放线程异常（实际未完整出声）：%s" % m["consume_error"])
+
         if m.get("stopped"):
             log.info("播报被外部打断（未播完）")
             return _status(False, playing, "播报被打断，未播完")

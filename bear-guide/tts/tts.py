@@ -1085,9 +1085,12 @@ class TTS:
             if not self._stop.is_set():
                 flush()
         except Exception as exc:                           # noqa: BLE001
-            # 播放线程崩溃（如后端 bug）必须落日志，否则上层只会误报「播报完成」
+            # 播放线程崩溃（如后端 bug）必须落日志，并把故障写进 metrics，
+            # 让 _verdict 判失败——否则上层只会误报「播报完成」而实际没出声
             log.error("播放消费线程异常（本次播报很可能没出声）: %s", exc,
                       exc_info=True)
+            if self._current(gen) and self.last_metrics is not None:
+                self.last_metrics["consume_error"] = "%s: %s" % (type(exc).__name__, exc)
         finally:
             # 只有"当代"的消费者有权收尾。一个被抢占后才退出的旧消费者
             # 如果照常执行 player.close()，会把**新播报刚打开的播放设备**关掉
