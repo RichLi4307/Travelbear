@@ -37,6 +37,7 @@ journalctl -u bear-guide -f         # systemd 模式看日志
 - 无头系统跑 opencv 必须用 headless 版；Pi5 的 lgpio 用系统包复制进 venv
 - stdout 重定向要 `python -u`，否则 print 全卡在缓冲区
 - **TTS 引擎启动时用 `TTS_VOLUME`（默认 100）重置系统音量**——音量标定改 `bear-guide/.env` 里的 TTS_VOLUME，别只调 amixer
+- **装 libportaudio2 会改变 TTS 后端探测结果**（auto 顺序 pyaudio→sounddevice→aplay，以前 sounddevice 不可用所以是 aplay）——本机已在 .env 钉死 `TTS_PLAYER=aplay`；以后动音频相关依赖，启动后先确认日志里「播放后端： aplay」
 - **测试时音量要低**（当前测试基准 10%）：任何会出声的验证（demo/提示音/hw_check）前把 `amixer -c 0 sset PCM 10%`，正式使用标定 75/100
 - **USB 摄像头会偶发掉线并以新身份（不同 vendor/product ID）重枚举**（和移动 WiFi 共用 USB2 集线器）：固件卡死（设备节点在、查询正常、抓帧挂起）时跑 `sudo -n usb-reset-cam` 免密复位；连 USB 设备节点都消失时只能重插，根治建议独立供电 hub
 

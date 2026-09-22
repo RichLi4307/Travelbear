@@ -2,6 +2,15 @@
 
 本项目的所有重要变更记录在此。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [未发布] - 2026-09-22 播报后端修复
+
+### 修复
+- **装 libportaudio2 引发的后端切换事故**：sounddevice 变得可用后，TTS 后端自动探测
+  从 aplay 切到 sounddevice，触发引擎潜伏 bug（原始 bytes 直写 `sd.OutputStream`，
+  要求 numpy 数组 → `dtype mismatch`），播放线程崩溃但上层误报「播报完成」。
+  修复：`.env` 钉死 `TTS_PLAYER=aplay`；sounddevice 写入改为 `np.frombuffer`；
+  播放消费线程增加异常捕获并落 ERROR 日志（不再静默误报）
+
 ## [未发布] - 2026-09-22 播报尾音与识图稳定性
 
 ### 修复

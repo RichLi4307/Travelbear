@@ -515,7 +515,8 @@ class Player:
         if self.backend == "pyaudio" and self._stream is not None:
             self._stream.write(pcm)
         elif self.backend == "sounddevice" and self._stream is not None:
-            self._stream.write(pcm)
+            import numpy as np
+            self._stream.write(np.frombuffer(pcm, dtype=np.int16))
         elif self.backend == "aplay" and self._proc is not None:
             try:
                 self._proc.stdin.write(pcm)
@@ -1083,6 +1084,10 @@ class TTS:
                     buf += pcm
             if not self._stop.is_set():
                 flush()
+        except Exception as exc:                           # noqa: BLE001
+            # 播放线程崩溃（如后端 bug）必须落日志，否则上层只会误报「播报完成」
+            log.error("播放消费线程异常（本次播报很可能没出声）: %s", exc,
+                      exc_info=True)
         finally:
             # 只有"当代"的消费者有权收尾。一个被抢占后才退出的旧消费者
             # 如果照常执行 player.close()，会把**新播报刚打开的播放设备**关掉
