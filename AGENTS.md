@@ -12,6 +12,7 @@ $V -u agent/main.py                  # 真实模式（GPIO 按键，上电默认
 $V -u agent/main.py --demo           # 演示模式（自动跑一次讲解）
 $V -u agent/hw_check.py             # 按键硬件检测（按功能键叫一声，音量键带滴声）
 amixer -c 0 sget PCM                # 查音量（当前标定 75/100）
+sudo -n usb-reset-cam               # 摄像头固件卡死（抓帧挂起）时免密复位，不用重启
 journalctl -u bear-guide -f         # systemd 模式看日志
 ```
 
@@ -26,7 +27,7 @@ journalctl -u bear-guide -f         # systemd 模式看日志
 
 ## 硬件现状
 
-扬声器(3.5mm)✅ 移动WiFi(eth1)✅ ｜ 摄像头⚠️(偶发掉线重枚举，卡死需重插/上供电hub) 麦克风❌(USB声卡不枚举) GPS❌(未接) 蓝牙⚠️(未开) ESP32（非本组）
+扬声器(3.5mm)✅ 移动WiFi(eth1)✅ 蓝牙✅(rfkill 已解、已通电) ｜ 摄像头⚠️(偶发掉线重枚举，卡死用 sudo -n usb-reset-cam 复位/重插/上供电hub) 麦克风❌(USB声卡不枚举) GPS❌(未接) ESP32（非本组）
 
 ## 已知技术坑（改之前先看）
 
@@ -37,7 +38,7 @@ journalctl -u bear-guide -f         # systemd 模式看日志
 - stdout 重定向要 `python -u`，否则 print 全卡在缓冲区
 - **TTS 引擎启动时用 `TTS_VOLUME`（默认 100）重置系统音量**——音量标定改 `bear-guide/.env` 里的 TTS_VOLUME，别只调 amixer
 - **测试时音量要低**（当前测试基准 10%）：任何会出声的验证（demo/提示音/hw_check）前把 `amixer -c 0 sset PCM 10%`，正式使用标定 75/100
-- **USB 摄像头会偶发掉线并以新身份（不同 vendor/product ID）重枚举**（和移动 WiFi 共用 USB2 集线器）：掉线后设备节点还在但抓帧会挂起，软件救不回，只能重插或加独立供电 hub；识图取景已做 3 次重试，能扛短暂抖动
+- **USB 摄像头会偶发掉线并以新身份（不同 vendor/product ID）重枚举**（和移动 WiFi 共用 USB2 集线器）：固件卡死（设备节点在、查询正常、抓帧挂起）时跑 `sudo -n usb-reset-cam` 免密复位；连 USB 设备节点都消失时只能重插，根治建议独立供电 hub
 
 ## Git 提交频率约定（必须遵守）
 
