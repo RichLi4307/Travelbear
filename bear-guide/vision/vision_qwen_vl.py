@@ -8,6 +8,7 @@ import time
 import base64
 import asyncio
 from pathlib import Path
+from typing import Optional
 
 import cv2
 from openai import AsyncOpenAI
@@ -54,24 +55,36 @@ class QwenVLVision(VisionInterface):
         )
 
     def _grab_frame_sync(self) -> str:
-        """同步采集一帧（在子线程中调用）"""
-        if self.image_source == "camera":
-            cap = cv2.VideoCapture(0)
-            ok, frame = cap.read()
-            cap.release()
-            if not ok:
-                raise RuntimeError("摄像头打开或读帧失败")
-        else:
+        """同步采集一帧（在子线程中调用）。
+
+        摄像头 USB 偶发掉线重枚举（和 WiFi 共用 USB2 集线器），打开/读帧
+        失败时重试 3 次、间隔 0.6s；持续失败才抛错（走业务降级链路）。
+        """
+        if self.image_source != "camera":
             frame = cv2.imread(self.image_source)
             if frame is None:
                 raise FileNotFoundError(f"读不到图片: {self.image_source}")
+            return self._save_frame(frame)
 
-        # 预处理：长边缩到 ≤1024，JPEG 质量 80
+        last_err: Optional[Exception] = None
+        for attempt in range(3):
+            cap = cv2.VideoCapture(0)
+            ok, frame = cap.read()
+            cap.release()
+            if ok:
+                return self._save_frame(frame)
+            last_err = RuntimeError("摄像头打开或读帧失败")
+            log.warning("取景第 %d/3 次失败，0.6s 后重试", attempt + 1)
+            time.sleep(0.6)
+        raise last_err
+
+    @staticmethod
+    def _save_frame(frame) -> str:
+        """预处理（长边 ≤1024、JPEG 质量 80）并落盘，返回图片路径。"""
         h, w = frame.shape[:2]
         scale = 1024 / max(h, w)
         if scale < 1:
             frame = cv2.resize(frame, (int(w * scale), int(h * scale)))
-
         out_path = str(CAPTURE_DIR / f"capture_{int(time.time())}.jpg")
         cv2.imwrite(out_path, frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
         return out_path

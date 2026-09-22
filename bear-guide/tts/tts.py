@@ -635,8 +635,11 @@ class Player:
                     except Exception:                      # noqa: BLE001
                         pass
                     try:
-                        self._proc.wait(timeout=1.0)
+                        # EOF 后 aplay 要把自身缓冲 + ALSA 缓冲里的尾音播完才退出。
+                        # 只等 1s 会把最后几个字 kill 掉（实测截断尾音），给足 3s。
+                        self._proc.wait(timeout=3.0)
                     except Exception:                      # noqa: BLE001
+                        log.warning("aplay 尾音排空超时（3s）强制结束，尾音可能被截断")
                         try:
                             self._proc.kill()
                         except Exception:                  # noqa: BLE001

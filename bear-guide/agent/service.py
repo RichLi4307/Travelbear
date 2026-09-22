@@ -8,6 +8,7 @@
 提示音用 aplay 播放本地合成的正音（不联网、不花钱、秒响）。
 """
 
+import asyncio
 import math
 import os
 import shutil
@@ -92,7 +93,7 @@ class GuideService:
     def _self_check(self) -> None:
         checks = [
             ("三个 API Key 已配置", all(os.environ.get(k) for k in _ENV_KEYS)),
-            ("摄像头可出图", self._check_camera()),
+            ("识图链路（取景 + 云端识别）", self._check_vision()),
             ("音量通道可读", volume.get_volume() >= 0),
             ("aplay 播放命令可用", bool(shutil.which("aplay"))),
         ]
@@ -100,12 +101,21 @@ class GuideService:
             print(f"  [{'OK' if ok else '!!'}] {name}")
 
     @staticmethod
-    def _check_camera() -> bool:
+    def _check_vision() -> bool:
+        """自检走真实识图链路，而不只验「摄像头能出图」。
+
+        摄像头偶发掉线重枚举时两者会不一致；识别结果顺带打印，
+        用户解锁时就能直接核对识图准不准。
+        """
         try:
-            import cv2
-            cap = cv2.VideoCapture(0)
-            ok = cap.isOpened() and cap.read()[0]
-            cap.release()
-            return ok
-        except Exception:
+            from vision.vision_qwen_vl import QwenVLVision
+            result = asyncio.run(
+                QwenVLVision(image_source="camera").get_scene(timeout=8.0))
+        except Exception as exc:
+            print(f"       识图链路异常：{exc}")
             return False
+        if result.success:
+            print(f"       识别结果：{result.scene_description[:40]}")
+            return True
+        print(f"       识图失败：{result.error_msg}")
+        return False
