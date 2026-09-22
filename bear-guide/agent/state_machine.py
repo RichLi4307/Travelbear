@@ -1,7 +1,7 @@
 import asyncio
 from common.types import DeviceState
 from agent.orchestrator import Orchestrator
-from agent.service import play_tones, INTERRUPT_TONES, RECEIVED_TONES
+from agent.service import play_tones, INTERRUPT_TONES, RECEIVED_TONES, BUSY_TONES
 
 # 连续语音问答开关：麦克风 + OSS 未到位，冻结问答模块（一按一讲模式）。
 # 解冻方法：硬件到位后改 True，并把 main.py 的 ASR 接线恢复为 DashScopeASR。
@@ -152,6 +152,8 @@ class AgentStateMachine:
             asyncio.create_task(self._interrupt_speaking())
             return
         if self.state != DeviceState.IDLE:
+            # 采集/生成中按了：给反馈音，避免用户以为没按到而重复按
+            play_tones(BUSY_TONES)
             return
         self._interrupt_flag = False
         print("[按键] 已受理：开始采集位置与画面")
