@@ -55,6 +55,9 @@ class DashScopeLLM:
         body = json.dumps({
             "model": self.model,
             "messages": messages,
+            # 低温度减少自由发挥（讲解要稳不要编）；max_tokens 封顶输出长度与延迟
+            "temperature": 0.4,
+            "max_tokens": 280,
         }, ensure_ascii=False).encode("utf-8")
 
         req = urllib.request.Request(
