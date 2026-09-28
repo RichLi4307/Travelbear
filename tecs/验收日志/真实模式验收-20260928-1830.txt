@@ -1,0 +1,82 @@
+18:20:10 [INFO] vendor.location.location: 本地围栏已加载：5 个景区 / 9 个点位
+18:20:10 [INFO] vendor.location.location: 定位模块已启动：gnss=/dev/ttyS0 ble=True 围栏=True 在线反解=True
+18:20:10 [INFO] tts: 播放后端: aplay
+18:20:10 [INFO] tts: 音量 60%（系统级 amixer）
+=== 熊导游 Agent 启动完成 ===
+[服务] 已上锁：长按功能键 2 秒解锁，音量键随时可用
+[按键] 功能键=GPIO17（短按讲解/长按2s开关锁，防抖300ms） 音量+=GPIO18 音量-=GPIO27（防抖50ms）
+[服务] 解锁，开始自检...
+18:22:49 [INFO] tts.interface: 开始播报：11 字
+18:22:49 [INFO] agent.vision: 开始取景识别，来源=camera
+[音量] 65%
+18:22:52 [INFO] tts.interface: 播报完成：1 句，失败 0
+[音量] 70%
+[音量] 75%
+[音量] 80%
+[音量] 85%
+[音量] 90%
+18:22:53 [INFO] httpx2: HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+18:22:53 [INFO] agent.vision: 云端识图完成：耗时=3.5s
+18:22:53 [INFO] agent.vision: 识图结果：画面中显示一部手机屏幕，屏幕上展示着一个古代青铜器的图像。该青铜器呈双耳杯状，表面有复杂的纹饰和铭文，整体颜色为古铜色，放置在白色展台上。手机置于木质桌面上，背景为浅色布料或纸板，环境为室内。光线来自上方，使得青铜器图像清晰可见。（置信度 0.20）
+       识别结果：画面中显示一部手机屏幕，屏幕上展示着一个古代青铜器的图像。该青铜器呈双耳杯状，表
+  [OK] 三个 API Key 已配置
+  [OK] 识图链路（取景 + 云端识别）
+  [OK] 音量通道可读
+  [OK] aplay 播放命令可用
+[服务] 自检完成，可以讲解（再长按 2 秒上锁）
+18:22:53 [INFO] tts.interface: 开始播报：10 字
+[音量] 85%
+18:22:56 [INFO] tts.interface: 播报完成：1 句，失败 0
+[音量] 80%
+[按键] 已受理：开始采集位置与画面
+[状态] acquiring：正在获取位置与画面...
+18:23:00 [INFO] tts.interface: 开始播报：10 字
+18:23:00 [INFO] vendor.location.switch: 定位模式切换：none → gps
+18:23:00 [INFO] agent.vision: 开始取景识别，来源=camera
+18:23:03 [INFO] tts.interface: 播报完成：1 句，失败 0
+18:23:05 [INFO] httpx2: HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+18:23:05 [INFO] agent.vision: 云端识图完成：耗时=3.5s
+18:23:05 [INFO] agent.vision: 识图结果：画面显示一部手机屏幕上展示着一件古代青铜器，青铜器呈双耳杯状，表面有复杂的纹饰。手机放置在木质桌面上，背景为浅色布料遮挡的墙面。屏幕中的青铜器被灯光照亮，呈现出金属光泽。周围环境较为昏暗，主要光源来自屏幕本身。（置信度 0.20）
+[状态] generating：正在生成讲解...
+18:23:05 [INFO] agent.llm: 开始生成讲解文案（提示词 478 字）
+18:23:07 [INFO] agent.llm: LLM 请求完成：模型=qwen-plus 耗时=2.4s 输出=127 字
+18:23:07 [INFO] agent.llm: 讲解文案生成成功：各位游客朋友，欢迎来到上海大学宝山校区。眼前展示的是一件双耳杯形青铜器，表面纹饰繁复，金属光泽鲜明。手机屏幕是主要观览载体，木质桌面与浅色背景衬托出器物的古朴质感。这件青铜器相传为古代礼器，体现传统铸造工艺与纹饰审美。请保持安静，缓步观赏，注意脚下安全。
+[状态] speaking：正在播报...
+18:23:07 [INFO] tts.interface: 开始播报：127 字
+[音量] 85%
+18:23:35 [INFO] tts.interface: 播报完成：5 句，失败 0
+[状态] idle：讲解完成，返回待机
+[按键] 已受理：开始采集位置与画面
+[状态] acquiring：正在获取位置与画面...
+18:25:37 [INFO] tts.interface: 开始播报：10 字
+18:25:37 [INFO] agent.vision: 开始取景识别，来源=camera
+18:25:40 [INFO] tts.interface: 播报完成：1 句，失败 0
+[音量] 90%
+18:25:43 [INFO] httpx2: HTTP Request: POST https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions "HTTP/1.1 200 OK"
+18:25:43 [INFO] agent.vision: 云端识图完成：耗时=4.7s
+18:25:43 [INFO] agent.vision: 识图结果：这是一个室内场景，地面为光滑的深色地板，反射出上方的灯光。墙壁为浅色瓷砖，右侧墙上有一个大型标识牌，包含红色箭头标志、SMEA字样、上海大学机电工程与自动化学院的名称以及彩色条形图。左侧有一块黑色电子显示屏，显示着一些文字信息。远处可见一扇门和红色布帘，天花板上有嵌入式照明灯。整体环境明亮整洁，无明显人物活动。（置信度 0.20）
+[状态] generating：正在生成讲解...
+18:25:43 [INFO] agent.llm: 开始生成讲解文案（提示词 529 字）
+18:25:45 [INFO] agent.llm: LLM 请求完成：模型=qwen-plus 耗时=2.7s 输出=157 字
+18:25:45 [INFO] agent.llm: 讲解文案生成成功：各位游客朋友，欢迎来到上海大学宝山校区机电工程与自动化学院。眼前是学院一楼大厅：地面是光滑的深色地板，映着上方灯光；右侧墙上立有大型标识牌，标有红色箭头、SMEA字样、学院全称和彩色条形图；左侧黑色电子屏正显示文字信息。这里承载着机电与自动化领域的教学科研使命，SMEA是学院英文名称的缩写。请留意脚下，缓步参观。
+[状态] speaking：正在播报...
+18:25:45 [INFO] tts.interface: 开始播报：157 字
+18:26:19 [INFO] tts.interface: 播报完成：6 句，失败 0
+[状态] idle：讲解完成，返回待机
+[按键] 已受理：开始采集位置与画面
+[状态] acquiring：正在获取位置与画面...
+18:30:33 [INFO] tts.interface: 开始播报：10 字
+18:30:33 [INFO] agent.vision: 开始取景识别，来源=camera
+18:30:35 [INFO] tts.interface: 播报完成：1 句，失败 0
+18:30:39 [INFO] openai._base_client: Retrying request in 0.429564 seconds (retry 1 of 2)
+18:30:42 [WARNING] agent.vision: 云端识图超时（8s）
+[状态] generating：正在生成讲解...
+18:30:42 [INFO] agent.llm: 开始生成讲解文案（提示词 374 字）
+18:31:03 [INFO] agent.llm: LLM 请求完成：模型=qwen-plus 耗时=21.4s 输出=137 字
+18:31:03 [INFO] agent.llm: 讲解文案生成成功：各位游客朋友，上海大学宝山校区是上海大学主校区之一。眼前可见现代化教学楼群、开阔的中心广场和绿意盎然的校园林荫道。校园内融合中西风格的建筑错落有致，多处设有师生艺术创作展示空间。相传校区规划注重人文与自然共生，体现大学育人理念。建议沿主干道缓步前行，留意建筑细节与沿途景观。
+[状态] speaking：正在播报...
+18:31:03 [INFO] tts.interface: 开始播报：137 字
+18:31:15 [INFO] tts.interface: 收到外部停止请求
+[打断] 已停止当前播报（按键打断）
+18:31:15 [INFO] tts.interface: 播报被外部打断（未播完）
+[状态] idle：播报被打断，返回待机
