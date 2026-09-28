@@ -129,13 +129,28 @@ def run():
     check("景区外+信标在场 → 仍报展位", (loc.mode,),
           (MODE_BLE,))
 
+    # 8) 【2026-09-28 修复】未映射信标（name=None，环境里的陌生 iBeacon）
+    #    不算定位证据：GPS 在场时必须落回 GPS，不能拿 UUID 串当景点名
+    clock = FakeClock()
+    sm = LocationStateMachine(geofence=index, clock=clock)
+    ghost = BeaconHit(uuid="66238680-D3C1-474E-A7D7-1833F554A087",
+                      major=258, minor=772, rssi=-69, ts=clock(), name=None)
+    loc = sm.decide(make_fix(clock, *area_pt), ghost)
+    check("陌生信标在场+GPS → 落回GPS景区", (loc.mode, loc.poi_name),
+          (MODE_GPS, "外滩"))
+    clock = FakeClock()
+    sm = LocationStateMachine(geofence=index, clock=clock)
+    loc = sm.decide(None, ghost)
+    check("只有陌生信标 → none（不播UUID串）", (loc.mode,),
+          (MODE_NONE,))
+
     print()
     if failures:
         print(f"BLE优先仲裁测试失败 {len(failures)} 条：")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("BLE优先仲裁测试全部通过（7 条）")
+    print("BLE优先仲裁测试全部通过（9 条）")
     return 0
 
 

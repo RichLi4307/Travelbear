@@ -61,7 +61,11 @@ class LocationStateMachine:
     def decide(self, fix: Optional[Fix], hit: Optional[BeaconHit]) -> Location:
         """唯一决策入口。永不抛异常。"""
         now = self._clock()
-        ble_ok = bool(hit and hit.is_fresh(now))
+        ble_ok = bool(hit and hit.is_fresh(now) and hit.name)
+        # 【跨模块修复·2026-09-28】未映射信标不算定位证据：环境里别人的
+        # iBeacon（实测邻居设备 UUID 66238680… major=258 -69dBm，阈值放宽
+        # 到 -85 后被收进来）会顶掉 GPS、让 LLM 拿到一串 UUID 当景点名。
+        # 只有 beacons.yaml 里映射出展位名的信标才代表"人在展位"。
         gps_ok = bool(fix and fix.is_usable(now))
 
         # 迟滞：刚从别处切到 BLE，在 hold 窗口内不允许切回 GPS
