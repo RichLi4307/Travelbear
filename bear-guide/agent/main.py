@@ -110,6 +110,7 @@ async def main():
             agent.orchestrator.tts.speak(text, interrupt=True), loop)
 
     service = GuideService(speak_fn=_speak)
+    agent.speak_fn = _speak            # 状态机受理提示语音与自检语音同一通道
     monitor = ButtonMonitor(
         on_short_press=lambda: service.on_short_press(agent.trigger),
         on_long_press=service.on_long_press,

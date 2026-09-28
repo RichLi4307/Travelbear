@@ -1,11 +1,23 @@
 import asyncio
+import logging
+import random
 from common.types import DeviceState
 from agent.orchestrator import Orchestrator
 from agent.service import play_tones, INTERRUPT_TONES, RECEIVED_TONES, BUSY_TONES
 
+log = logging.getLogger(__name__)
+
 # 连续语音问答开关：麦克风 + OSS 未到位，冻结问答模块（一按一讲模式）。
 # 解冻方法：硬件到位后改 True，并把 main.py 的 ASR 接线恢复为 DashScopeASR。
 ENABLE_CONVERSATION = False
+
+# 受理后的即时语音安抚（讲解员口吻，不说"拍照中/生成中"这类技术词）。
+# 随机轮换防机械感；与识图/LLM 并发，不占用链路时间。
+RECEIVED_VOICE = (
+    "好嘞，我看看这是哪儿",
+    "稍等，我瞅瞅眼前这个",
+    "让我看看，这是哪儿呀",
+)
 
 class AgentStateMachine:
     """
@@ -20,6 +32,8 @@ class AgentStateMachine:
         self.orchestrator = orchestrator
         # 中断标志：用于按键打断播报
         self._interrupt_flag = False
+        # 语音提示通道（main.py 注入，与 GuideService 同一个 _speak）
+        self.speak_fn = None
 
     async def run_once(self):
         """执行一次讲解流程（原有接口，保持兼容：采集 → 生成 → 播报）"""
@@ -158,6 +172,12 @@ class AgentStateMachine:
         self._interrupt_flag = False
         print("[按键] 已受理：开始采集位置与画面")
         play_tones(RECEIVED_TONES)
+        if self.speak_fn:
+            # 即时语音安抚：用户知道"听见了、在干活"，填补识图+生成前的空窗
+            try:
+                self.speak_fn(random.choice(RECEIVED_VOICE))
+            except Exception as exc:                           # noqa: BLE001
+                log.warning("受理语音提示调度失败：%s", exc)
         asyncio.create_task(self.run_guide())
 
     async def _interrupt_speaking(self):

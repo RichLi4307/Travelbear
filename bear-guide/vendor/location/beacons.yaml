@@ -5,13 +5,15 @@
 #   1. 布好信标，站在展位正中，跑 python tools/beacon_calibrate.py
 #   2. 记下该信标稳定后的 RSSI（比如 -62）
 #   3. 走到展位边界（比如 3m 外），再记一个值（比如 -78）
-#   4. rssi_threshold 取中间偏保守，比如 -72 —— 低于它的观测一律忽略
+#   4. rssi_threshold 取中间偏保守 —— 低于它的观测一律忽略
+#      2026-09-28 起全局 -85：信标无天线（板载），放宽以扩大触发半径，
+#      现场标定时以"展位边界实测值"精调
 #
 # 注意：信标实体上的 TX Power 也要同步调。TX Power 调小 = 覆盖范围缩小 =
 # 更容易做到"只在一个展位内触发"，这比事后调阈值有效得多。
 
 # 全局默认阈值（低于它一律忽略）。单个信标可用 rssi_threshold 覆盖。
-default_rssi_threshold: -75
+default_rssi_threshold: -85
 
 beacons:
   # ↓↓↓ 下面三条是占位示例，拿到真信标后用厂商 App 读出真实 UUID/major/minor 替换 ↓↓↓
@@ -19,16 +21,16 @@ beacons:
     major: 1
     minor: 1
     name: "三号展厅-青铜器展位"
-    rssi_threshold: -70
+    rssi_threshold: -85
 
   - uuid: "FDA50693-A4E2-4FB1-AFCF-C6EB07647825"
     major: 1
     minor: 2
     name: "三号展厅-陶瓷展位"
-    rssi_threshold: -70
+    rssi_threshold: -85
 
   - uuid: "E2C56DB5-DFFB-48D2-B060-D0F5A71096E0"
     major: 2
     minor: 1
     name: "一号展厅-入口展位"
-    rssi_threshold: -72
+    rssi_threshold: -85
