@@ -2,7 +2,7 @@
 
 树莓派 5 上的 AI 景区导览设备：按键触发 → 摄像头取景 + 定位 → 云端 LLM 生成讲解 → 语音播报。
 
-本文件是**仓库总 README**（面向 GitHub 与项目组）。技术细节协作约定见 [AGENTS.md](AGENTS.md)，变更记录见 [CHANGELOG.md](CHANGELOG.md)，代码主程序在 `bear-guide/`。
+本文件是**仓库总 README**（面向 GitHub 与项目组）。技术细节协作约定见 [AGENTS.md](AGENTS.md)，变更记录见 [CHANGELOG.md](CHANGELOG.md)，**硬件清单与接线见 [硬件清单.md](硬件清单.md)**，代码主程序在 `bear-guide/`。
 
 **当前状态（2026-09-28）**：硬件全链路实测闭环——GNSS 室外定位、BLE 信标室内定位、识图、LLM、TTS、按键热键、服务锁、打断均通过真实验收（记录见 `tecs/验收日志/`）。待现场事项：信标进馆布点与阈值标定、信标供电方案。
 
