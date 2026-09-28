@@ -22,7 +22,7 @@
 - **室外**：NEO-M8N GPS 接 GPIO14/15（`/dev/ttyS0`），后台线程常驻搜星；本地围栏两档判定（景区级宽松/点位级严格），未命中走高德在线反解兜底。
 - **室内**：ESP32-C3 信标广播 iBeacon，树莓派板载蓝牙扫描 → RSSI 中值滤波 → 阈值过滤 → 展位映射（`vendor/location/beacons.yaml`）。
 - **仲裁（负责人拍板）**：**BLE 新鲜命中无条件最高优先**——信标固定在展位上是米级物理证据，GPS（含点位级）不插嘴；信标过期 10 秒自动落回 GPS。消除展厅内 GPS 漏入弱 fix 导致讲解串味。
-- 行为锁定在 `bear-guide/location/tests/test_ble_priority.py`（7 条）。
+- 行为锁定在 `bear-guide/location/tests/test_ble_priority.py`（9 条）。
 
 | 信标 | 展位 | UUID | major:minor | RSSI 阈值 |
 | --- | --- | --- | --- | --- |
@@ -75,7 +75,7 @@ python -u agent/main.py
 
 ```bash
 python agent/tests/test_full_flow.py       # 纯 Mock 全流程（无需 key / 硬件）
-python location/tests/test_ble_priority.py # 定位仲裁 7 条（BLE 最高优先）
+python location/tests/test_ble_priority.py # 定位仲裁 9 条（BLE 最高优先）
 ```
 
 ---

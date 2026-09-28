@@ -93,7 +93,7 @@
 - **BLE 最高优先仲裁**（vendor/location/switch.py，跨模块改动，负责人拍板）：
   信标有新鲜命中时 GPS 一律不插嘴（点位级也不行），消除展厅内弱 fix 串味；
   GPS 夺回主导权唯一条件 = 信标命中过期（10s）。行为锁定在
-  `location/tests/test_ble_priority.py`（7 条）。交付包侧 3 条旧期望过时，
+  `location/tests/test_ble_priority.py`（9 条）。交付包侧 3 条旧期望过时，
   已记入 tecs 跨模块清单
 
 ### 说明
