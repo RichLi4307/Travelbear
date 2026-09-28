@@ -28,7 +28,7 @@ journalctl -u bear-guide -f         # systemd 模式看日志
 
 ## 硬件现状
 
-扬声器(3.5mm)✅ 移动WiFi(eth1)✅ 蓝牙✅(rfkill 已解、已通电) ｜ 摄像头⚠️(偶发掉线重枚举，卡死用 sudo -n usb-reset-cam 复位/重插/上供电hub) 麦克风❌(USB声卡不枚举) GPS❌(未接) ESP32（非本组）
+扬声器(3.5mm)✅ 移动WiFi(eth1)✅ 蓝牙✅(rfkill 已解、已通电) ｜ 摄像头⚠️(偶发掉线重枚举，卡死用 sudo -n usb-reset-cam 复位/重插/上供电hub) 麦克风❌(USB声卡不枚举) GPS✅(NEO-M8N 接 GPIO14/15，室内无星、待室外搜星验证) ESP32信标✅(1号板-青铜器 已上线实测) ESP32（语音板，非本组）
 
 ## 已知技术坑（改之前先看）
 
@@ -41,6 +41,7 @@ journalctl -u bear-guide -f         # systemd 模式看日志
 - **装 libportaudio2 会改变 TTS 后端探测结果**（auto 顺序 pyaudio→sounddevice→aplay，以前 sounddevice 不可用所以是 aplay）——本机已在 .env 钉死 `TTS_PLAYER=aplay`；以后动音频相关依赖，启动后先确认日志里「播放后端： aplay」
 - **测试时音量要低**（当前测试基准 10%）：任何会出声的验证（demo/提示音/hw_check）前把 `amixer -c 0 sset PCM 10%`，正式使用标定 75/100
 - **USB 摄像头会偶发掉线并以新身份（不同 vendor/product ID）重枚举**（和移动 WiFi 共用 USB2 集线器）：固件卡死（设备节点在、查询正常、抓帧挂起）时跑 `sudo -n usb-reset-cam` 免密复位；连 USB 设备节点都消失时只能重插，根治建议独立供电 hub
+- **GNSS 走 GPIO14/15（miniUART，/dev/ttyS0），不是 USB 串口**：Pi5 的 PL011 归板载蓝牙，与 vendor 代码注释里"4B 别用 GPIO UART"的情况不同。已配 `enable_uart=1` 并删掉 cmdline 的 serial0 控制台（备份 .bak-gps）。**改回去或重装系统后要重做这两步**。NEO-M8N 是 GNGGA 多星座语句，pynmea2 按 sentence_type 匹配，无需配模块
 
 ## Git 提交频率约定（必须遵守）
 
