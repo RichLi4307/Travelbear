@@ -19,6 +19,12 @@ RECEIVED_VOICE = (
     "让我看看，这是哪儿呀",
 )
 
+# 生成阶段慢响应保护（实测 LLM 正常 2~3s，云端波动可至 20s+）
+GENERATING_SOOTHE_S = 6.0      # 超过此时长未出文案：播一次安抚语音
+GENERATING_TIMEOUT_S = 30.0    # 超过此时长仍无结果：放弃云端，抱歉 + 本地兜底话术
+SOOTHE_VOICE = ("嗯……让我想想怎么讲", "这个我得想一想")
+TIMEOUT_VOICE = "抱歉，刚才没想好怎么说，我简单讲两句"
+
 class AgentStateMachine:
     """
     有限状态机：设备的大脑，控制状态流转
@@ -88,8 +94,35 @@ class AgentStateMachine:
             self.state = DeviceState.GENERATING
             print(f"[状态] {self.state.value}：正在生成讲解...")
 
-            # 生成讲解文案
-            script = await self.orchestrator.generate_script(position, scene)
+            # 慢响应保护：6s 未出文案播一次安抚；30s 仍无结果放弃云端，
+            # 道歉 + 本地兜底话术（不联网、立即可得），绝不无限等下去。
+            soothe_fired = False
+
+            async def _soothe():
+                nonlocal soothe_fired
+                await asyncio.sleep(GENERATING_SOOTHE_S)
+                if not soothe_fired and not self._interrupt_flag and self.speak_fn:
+                    soothe_fired = True
+                    self.speak_fn(random.choice(SOOTHE_VOICE))
+
+            soothe_task = asyncio.create_task(_soothe())
+            try:
+                script = await asyncio.wait_for(
+                    self.orchestrator.generate_script(position, scene),
+                    timeout=GENERATING_TIMEOUT_S,
+                )
+            except Exception as exc:     # 超时或 LLM 异常都走兜底
+                soothe_fired = True      # 超时抱歉优先，安抚不再播
+                if self._interrupt_flag:
+                    soothe_task.cancel()
+                    raise
+                print(f"[生成] 云端生成超时/异常（{exc}），转本地兜底话术")
+                if self.speak_fn:
+                    self.speak_fn(TIMEOUT_VOICE)
+                from agent.prompt_builder import build_local_script
+                script = build_local_script(position, scene)
+            finally:
+                soothe_task.cancel()
 
             # ========== 状态3：播报中 ==========
             self.state = DeviceState.SPEAKING
