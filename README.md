@@ -109,7 +109,7 @@ DASHSCOPE_API_KEY=阿里云Key（识图+LLM+ASR 共用）
 MIMO_API_KEY=小米Key（TTS）
 GNSS_PORT=/dev/ttyS0     # GPS 接 GPIO14/15 时（Pi5 miniUART）
 GNSS_BAUD=9600
-TTS_VOLUME=60            # 默认音量 60%
+TTS_VOLUME=75            # 默认音量 75%
 TTS_PLAYER=aplay         # 钉死后端，防 libportaudio2 改变探测结果
 ```
 

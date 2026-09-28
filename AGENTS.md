@@ -11,10 +11,13 @@ $V agent/tests/test_full_flow.py     # 全链路 Mock 回归（必过）
 $V -u agent/main.py                  # 真实模式（GPIO 按键，上电默认上锁）
 $V -u agent/main.py --demo           # 演示模式（自动跑一次讲解）
 $V -u agent/hw_check.py             # 按键硬件检测（按功能键叫一声，音量键带滴声）
-amixer -c 0 sget PCM                # 查音量（当前标定 60/100）
+amixer -c 0 sget PCM                # 查音量（当前标定 75/100）
 sudo -n usb-reset-cam               # 摄像头固件卡死（抓帧挂起）时免密复位，不用重启
 python3 -m http.server 8901 --directory bear-guide/captures   # 浏览器看摄像头实拍: http://<树莓派IP>:8901/
 journalctl -u bear-guide -f         # systemd 模式看日志
+sudo systemctl stop bear-guide      # 停服务（调试手动实例前必停，GPIO 独占）
+sudo systemctl start bear-guide     # 启服务
+sudo systemctl disable bear-guide   # 取消开机自启
 ```
 
 ## 热键速查（改接线只动 `agent/button.py` 顶部常量）
@@ -39,7 +42,7 @@ journalctl -u bear-guide -f         # systemd 模式看日志
 - stdout 重定向要 `python -u`，否则 print 全卡在缓冲区
 - **TTS 引擎启动时用 `TTS_VOLUME`（默认 100）重置系统音量**——音量标定改 `bear-guide/.env` 里的 TTS_VOLUME，别只调 amixer
 - **装 libportaudio2 会改变 TTS 后端探测结果**（auto 顺序 pyaudio→sounddevice→aplay，以前 sounddevice 不可用所以是 aplay）——本机已在 .env 钉死 `TTS_PLAYER=aplay`；以后动音频相关依赖，启动后先确认日志里「播放后端： aplay」
-- **测试时音量要低**（当前测试基准 10%）：任何会出声的验证（demo/提示音/hw_check）前把 `amixer -c 0 sset PCM 10%`，正式使用标定 60/100
+- **测试时音量要低**（当前测试基准 10%）：任何会出声的验证（demo/提示音/hw_check）前把 `amixer -c 0 sset PCM 10%`，正式使用标定 75/100
 - **USB 摄像头会偶发掉线并以新身份（不同 vendor/product ID）重枚举**（和移动 WiFi 共用 USB2 集线器）：固件卡死（设备节点在、查询正常、抓帧挂起）时跑 `sudo -n usb-reset-cam` 免密复位；连 USB 设备节点都消失时只能重插，根治建议独立供电 hub
 - **GNSS 走 GPIO14/15（miniUART，/dev/ttyS0），不是 USB 串口**：Pi5 的 PL011 归板载蓝牙，与 vendor 代码注释里"4B 别用 GPIO UART"的情况不同。已配 `enable_uart=1` 并删掉 cmdline 的 serial0 控制台（备份 .bak-gps）。**改回去或重装系统后要重做这两步**。NEO-M8N 是 GNGGA 多星座语句，pynmea2 按 sentence_type 匹配，无需配模块
 
