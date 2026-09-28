@@ -78,5 +78,27 @@
 
 ### 已知问题（详见 agent/README.md 待办）
 - 麦克风 USB 声卡系统未识别（`arecord -l` 为空），真实模式 ASR 不可用
-- GPS 未接入（无 /dev/ttyUSB0，代码自动降级）；蓝牙未开启（BLE 信标不可用）
 - ASR 固定 5 秒录音窗口、无说完检测（冻结期间不阻塞使用）
+
+## [未发布] - 2026-09-28 定位全链路落地（GNSS 接线 + BLE 信标 + 仲裁修复）
+
+### 变更
+- **GNSS 启用**：NEO-M8N 接 GPIO14/15（5V/GND/TX→Pin10 三根线），Pi5 miniUART
+  对应 `/dev/ttyS0`（PL011 留给板载蓝牙，与 gnss.py 注释的 4B 场景不同）。
+  系统侧：`enable_uart=1` + 删除 cmdline 的 serial0 控制台（备份 .bak-gps）。
+  `.env` 配 `GNSS_PORT=/dev/ttyS0`。实测搜星 9 颗/HDOP 2.87，
+  围栏命中「上海大学（宝山校区）」conf 0.85
+- **BLE 信标上线**：1 号板（三号展厅-青铜器展位）实测 12s 收 45 条广播，
+  RSSI 中值 −64；「信标→bleak→解析→展位映射」全链路在树莓派本机验证通过
+- **BLE 最高优先仲裁**（vendor/location/switch.py，跨模块改动，负责人拍板）：
+  信标有新鲜命中时 GPS 一律不插嘴（点位级也不行），消除展厅内弱 fix 串味；
+  GPS 夺回主导权唯一条件 = 信标命中过期（10s）。行为锁定在
+  `location/tests/test_ble_priority.py`（7 条）。交付包侧 3 条旧期望过时，
+  已记入 tecs 跨模块清单
+
+### 说明
+- 按键链路定位零等待：`LocationAdapter.get_position` 是 <5ms 内存读取，
+  搜星由后台常驻线程负责（进程启动即开始），用户感知的"GPS 慢"只在冷启动
+  首次 fix（物理下限），不在按键路径上
+- 信标阈值 −70 是占位桌面值，正式布点后必须现场标定并回填 vendor 副本
+  （tools/ 标定工具整合待做，研判见 /tmp 诊断文件）

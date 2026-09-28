@@ -61,11 +61,20 @@ class LocationStateMachine:
     def decide(self, fix: Optional[Fix], hit: Optional[BeaconHit]) -> Location:
         """唯一决策入口。永不抛异常。"""
         now = self._clock()
-        gps_ok = bool(fix and fix.is_usable(now))
         ble_ok = bool(hit and hit.is_fresh(now))
+        gps_ok = bool(fix and fix.is_usable(now))
 
         # 迟滞：刚从别处切到 BLE，在 hold 窗口内不允许切回 GPS
         if gps_ok and self._mode == MODE_BLE and (now - self._last_switch_ts) < self._hold_s:
+            gps_ok = False
+
+        # 【跨模块修复·2026-09-28】BLE 最高优先（负责人拍板）：展位有新鲜信标
+        # 命中时，GPS 一律不插嘴——点位级也不行。信标固定在展位上是物理事实，
+        # 米级证据永远压过任何卫星推导（弱 fix 串味、漂移恰好落进 spot 圈的
+        # 翻车窗口全部消除）。信标被带在身上会压死 GPS：运维场景靠管理约束
+        # （信标固定在展位），不在软件里留例外。GPS 夺回主导权的唯一条件是
+        # 信标命中过期（BLE_MAX_AGE_S=10s）。
+        if ble_ok and gps_ok:
             gps_ok = False
 
         if gps_ok:
